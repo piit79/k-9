@@ -975,10 +975,21 @@ public class MessageList extends K9FragmentActivity implements MessageListFragme
             }
 
             // Set title of menu item to toggle the read state of the currently displayed message
+            MenuItem toggleUnread = menu.findItem(R.id.toggle_unread);
             if (mMessageViewFragment.isMessageRead()) {
-                menu.findItem(R.id.toggle_unread).setTitle(R.string.mark_as_unread_action);
+            	toggleUnread.setTitle(R.string.mark_as_unread_action);
+                if (K9.getK9MessageViewTheme() == K9.Theme.DARK) {
+                	toggleUnread.setIcon(R.drawable.ic_action_mark_as_unread_dark);
+                } else {
+                	toggleUnread.setIcon(R.drawable.ic_action_mark_as_unread_light);
+                }
             } else {
-                menu.findItem(R.id.toggle_unread).setTitle(R.string.mark_as_read_action);
+            	toggleUnread.setTitle(R.string.mark_as_read_action);
+                if (K9.getK9MessageViewTheme() == K9.Theme.DARK) {
+                	toggleUnread.setIcon(R.drawable.ic_action_mark_as_read_dark);
+                } else {
+                	toggleUnread.setIcon(R.drawable.ic_action_mark_as_read_light);
+                }
             }
 
             menu.findItem(R.id.copy).setVisible(mMessageViewFragment.isCopyCapable());
