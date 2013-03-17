@@ -4939,7 +4939,8 @@ public class MessagingController implements Runnable {
         }
 
         builder.setContentIntent(stack.getPendingIntent(
-                account.getAccountNumber(), PendingIntent.FLAG_UPDATE_CURRENT));
+                account.getAccountNumber(),
+                PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_ONE_SHOT));
         builder.setDeleteIntent(NotificationActionService.getAcknowledgeIntent(context, account));
 
         // Only ring or vibrate if we have not done so already on this account and fetch
@@ -4962,15 +4963,22 @@ public class MessagingController implements Runnable {
         notifMgr.notify(account.getAccountNumber(), builder.build());
     }
 
-    private TaskStackBuilder buildFolderListBackStack(Context context, Account account) {
+    private TaskStackBuilder buildAccountsBackStack(Context context) {
         TaskStackBuilder stack = TaskStackBuilder.create(context);
-        stack.addNextIntent(new Intent(context, Accounts.class).putExtra(Accounts.EXTRA_STARTUP, false));
+        if (!skipAccountsInBackStack(context)) {
+            stack.addNextIntent(new Intent(context, Accounts.class).putExtra(Accounts.EXTRA_STARTUP, false));
+        }
+        return stack;
+    }
+
+    private TaskStackBuilder buildFolderListBackStack(Context context, Account account) {
+        TaskStackBuilder stack = buildAccountsBackStack(context);
         stack.addNextIntent(FolderList.actionHandleAccountIntent(context, account, false));
         return stack;
     }
 
     private TaskStackBuilder buildUnreadBackStack(Context context, final Account account) {
-        TaskStackBuilder stack = buildFolderListBackStack(context, account);
+        TaskStackBuilder stack = buildAccountsBackStack(context);
         String description = context.getString(R.string.search_title,
                 account.getDescription(), context.getString(R.string.unread_modifier));
         LocalSearch search = new LocalSearch(description);
@@ -4981,7 +4989,10 @@ public class MessagingController implements Runnable {
     }
 
     private TaskStackBuilder buildMessageListBackStack(Context context, Account account, String folder) {
-        TaskStackBuilder stack = buildFolderListBackStack(context, account);
+        TaskStackBuilder stack = skipFolderListInBackStack(context, account, folder)
+                ? buildAccountsBackStack(context)
+                : buildFolderListBackStack(context, account);
+
         if (folder != null) {
             LocalSearch search = new LocalSearch(folder);
             search.addAllowedFolder(folder);
@@ -4996,6 +5007,14 @@ public class MessagingController implements Runnable {
         TaskStackBuilder stack = buildMessageListBackStack(context, account, message.folderName);
         stack.addNextIntent(MessageList.actionDisplayMessageIntent(context, message));
         return stack;
+    }
+
+    private boolean skipFolderListInBackStack(Context context, Account account, String folder) {
+        return folder != null && folder.equals(account.getAutoExpandFolderName());
+    }
+
+    private boolean skipAccountsInBackStack(Context context) {
+        return Preferences.getPreferences(context).getAccounts().length == 1;
     }
 
     /**
